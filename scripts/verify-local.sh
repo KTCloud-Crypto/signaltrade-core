@@ -24,5 +24,17 @@ kubectl --context "$CONTEXT" wait \
   namespace/signaltrade \
   --timeout=30s
 
-echo "local platform is ready: $CONTEXT / signaltrade"
+kubectl --context "$CONTEXT" rollout status \
+  statefulset/postgres --namespace signaltrade --timeout=180s
+kubectl --context "$CONTEXT" rollout status \
+  deployment/redis --namespace signaltrade --timeout=180s
+kubectl --context "$CONTEXT" rollout status \
+  deployment/localstack --namespace signaltrade --timeout=180s
 
+if kubectl --context "$CONTEXT" get job database-migration \
+  --namespace signaltrade >/dev/null 2>&1; then
+  kubectl --context "$CONTEXT" wait --for=condition=complete \
+    job/database-migration --namespace signaltrade --timeout=30s
+fi
+
+echo "local platform is ready: $CONTEXT / signaltrade"
