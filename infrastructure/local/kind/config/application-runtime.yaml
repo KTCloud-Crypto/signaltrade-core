@@ -51,4 +51,5 @@ stringData:
   AWS_SECRET_ACCESS_KEY: test
   SECRET_KEY: signaltrade-local-kubernetes-jwt-secret
   MASTER_ENCRYPTION_KEY: MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=
+  INTERNAL_SERVICE_TOKEN: signaltrade-local-internal-service-token
   TELEGRAM_BOT_TOKEN: ""
