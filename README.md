@@ -33,6 +33,14 @@ make apply
 make verify
 ```
 
+DB migration은 애플리케이션과 분리된 이미지로 정확히 한 번 실행합니다.
+
+```sh
+make build-migrations
+make load-migrations
+make migrate
+```
+
 공통 패키지 검증:
 
 ```sh
