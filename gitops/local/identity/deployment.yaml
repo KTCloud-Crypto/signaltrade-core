@@ -30,14 +30,23 @@ spec:
             - secretRef:
                 name: application-runtime-secret
           startupProbe:
-            httpGet: {path: /health, port: http}
+            httpGet:
+              path: /health
+              port: http
+              httpHeaders: [{name: Host, value: localhost}]
             periodSeconds: 2
             failureThreshold: 30
           readinessProbe:
-            httpGet: {path: /ready, port: http}
+            httpGet:
+              path: /ready
+              port: http
+              httpHeaders: [{name: Host, value: localhost}]
             periodSeconds: 5
           livenessProbe:
-            httpGet: {path: /health, port: http}
+            httpGet:
+              path: /health
+              port: http
+              httpHeaders: [{name: Host, value: localhost}]
             periodSeconds: 10
           resources:
             requests: {cpu: 25m, memory: 64Mi}
@@ -55,4 +64,3 @@ spec:
     - name: http
       port: 8000
       targetPort: http
-
