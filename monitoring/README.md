@@ -1,4 +1,3 @@
-# Monitoring
+# 모니터링
 
-Prometheus, Loki, Grafana와 수집 설정을 관리합니다. 서비스는 공통 metric 이름과 JSON
-로그 필드를 유지하되, 서비스별 대시보드와 alert rule은 이 경로에서 조합합니다.
+서비스 metric, 로그, 알림 규칙을 조합하는 경로입니다. 운영에서는 Prometheus·Grafana와 CloudWatch를 연결해 Pod 상태, 주문 실패, Queue 적체를 확인합니다.
