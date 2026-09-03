@@ -48,10 +48,10 @@ metadata:
     signaltrade.dev/scope: local-only
 type: Opaque
 stringData:
-  DATABASE_URL: postgresql://signaltrade:signaltrade-local@postgres:5432/signaltrade
-  AWS_ACCESS_KEY_ID: test
-  AWS_SECRET_ACCESS_KEY: test
-  SECRET_KEY: signaltrade-local-kubernetes-jwt-secret
-  MASTER_ENCRYPTION_KEY: MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA=
-  INTERNAL_SERVICE_TOKEN: signaltrade-local-internal-service-token
+  DATABASE_URL: postgresql://signaltrade:signaltrade-local-password@postgres:5432/signaltrade
+  AWS_ACCESS_KEY_ID: localstack
+  AWS_SECRET_ACCESS_KEY: localstack
+  SECRET_KEY: local-development-jwt-secret
+  MASTER_ENCRYPTION_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+  INTERNAL_SERVICE_TOKEN: local-internal-service-token
   TELEGRAM_BOT_TOKEN: ""
