@@ -16,6 +16,7 @@ data:
   TRADING_METRICS_PORT: "9102"
   PORTFOLIO_METRICS_PORT: "9103"
   NOTIFICATION_METRICS_PORT: "9104"
+  MESSAGING_METRICS_PORT: "9105"
   ALLOWED_HOSTS: localhost,127.0.0.1,signaltrade.local,backend,identity-api,strategy-api,trading-api,portfolio-api
   REDIS_URL: redis://redis:6379/0
   SQS_ENDPOINT_URL: http://localstack:4566
