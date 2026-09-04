@@ -536,7 +536,12 @@ Resources:
         ServiceIpv4Cidr: 10.100.0.0/16
       Logging:
         ClusterLogging:
-          EnabledTypes: [api, audit, authenticator, controllerManager, scheduler]
+          EnabledTypes:
+            - {Type: api}
+            - {Type: audit}
+            - {Type: authenticator}
+            - {Type: controllerManager}
+            - {Type: scheduler}
       ResourcesVpcConfig:
         EndpointPrivateAccess: true
         EndpointPublicAccess: true
