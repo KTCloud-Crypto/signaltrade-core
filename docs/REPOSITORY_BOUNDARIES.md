@@ -6,7 +6,8 @@ SignalTrade는 서비스별 코드·배포·테스트를 분리한 폴리레포 
 
 | 저장소 | 담당 기능 | 주된 통신 |
 |---|---|---|
-| Core | 공통 계약, migration, 인프라, GitOps | 서비스 이미지 조합 |
+| Core | 공통 계약, migration, 기반 인프라 | DB·클러스터 기반 구성 |
+| GitOps | Kubernetes·Helm·Argo CD 배포 선언 | 서비스 이미지 조합과 환경별 배포 상태 |
 | Identity | 사용자, 인증, Upbit 키, Telegram 연결 | Frontend·내부 HTTP |
 | Strategy | 시세, 전략 카탈로그, 구독, 신호 | Frontend·Outbox |
 | Trading | 모의계좌, 주문 요청, 체결, 거래 기록 | Queue 소비·내부 HTTP |

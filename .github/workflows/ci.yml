@@ -6,9 +6,30 @@ on:
   pull_request:
     branches: [main, develop]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test-and-build:
+  test-and-migrate:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: signaltrade
+          POSTGRES_PASSWORD: signaltrade
+          POSTGRES_DB: signaltrade
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U signaltrade -d signaltrade"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -19,3 +40,15 @@ jobs:
       - run: pip install -e "packages/signaltrade-core[dev]"
       - run: pytest -q packages/signaltrade-core/tests
       - run: docker build -t signaltrade-migrations:ci database
+      - name: Verify a single Alembic head
+        run: test "$(docker run --rm signaltrade-migrations:ci heads | wc -l)" -eq 1
+      - name: Apply all migrations to PostgreSQL
+        run: |
+          docker run --rm --network host \
+            -e DATABASE_URL=postgresql://signaltrade:signaltrade@127.0.0.1:5432/signaltrade \
+            signaltrade-migrations:ci upgrade head
+      - name: Verify migration reached head
+        run: |
+          docker run --rm --network host \
+            -e DATABASE_URL=postgresql://signaltrade:signaltrade@127.0.0.1:5432/signaltrade \
+            signaltrade-migrations:ci current | grep --quiet '(head)'
