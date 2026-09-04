@@ -14,8 +14,10 @@ SignalTrade는 폴리레포 전환 중에도 하나의 PostgreSQL을 공유합�
 ```text
 alembic/             revision 파일과 Alembic 설정
 Dockerfile            migration 전용 이미지
-kubernetes/          로컬 migration Job 선언
 ```
+
+클러스터에 실행할 migration Job 선언은 배포 상태이므로
+`signaltrade-gitops/environments/local/kustomize/jobs/database-migration`에서 관리합니다.
 
 ## 로컬 실행
 

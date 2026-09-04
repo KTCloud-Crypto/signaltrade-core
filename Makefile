@@ -1,6 +1,7 @@
 CLUSTER_NAME ?= signaltrade-local
 KIND_CONFIG ?= infrastructure/local/kind/kind-config.yaml
 KUSTOMIZE_DIR ?= infrastructure/local/kind
+GITOPS_DIR ?= ../signaltrade-gitops
 KUBE_CONTEXT ?= kind-$(CLUSTER_NAME)
 MIGRATION_IMAGE ?= signaltrade-migrations:local
 
@@ -23,7 +24,7 @@ load-migrations:
 
 migrate:
 	kubectl --context $(KUBE_CONTEXT) delete job database-migration --namespace signaltrade --ignore-not-found
-	kubectl --context $(KUBE_CONTEXT) apply -k database/kubernetes
+	kubectl --context $(KUBE_CONTEXT) apply -k $(GITOPS_DIR)/environments/local/kustomize/jobs/database-migration
 	kubectl --context $(KUBE_CONTEXT) wait --for=condition=complete job/database-migration --namespace signaltrade --timeout=300s
 
 verify:

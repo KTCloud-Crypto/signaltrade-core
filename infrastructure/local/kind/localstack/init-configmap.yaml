@@ -21,8 +21,10 @@ data:
     trading_url="$(ensure_queue signaltrade-trading-commands)"
     awslocal sqs set-queue-attributes --region "$region" --queue-url "$trading_url" --attributes "{\"VisibilityTimeout\":\"300\",\"RedrivePolicy\":\"{\\\"deadLetterTargetArn\\\":\\\"$trading_dlq_arn\\\",\\\"maxReceiveCount\\\":\\\"5\\\"}\"}"
 
+    strategy_dlq_url="$(ensure_queue signaltrade-strategy-commands-dlq)"
+    strategy_dlq_arn="$(awslocal sqs get-queue-attributes --region "$region" --queue-url "$strategy_dlq_url" --attribute-names QueueArn --query 'Attributes.QueueArn' --output text)"
     strategy_url="$(ensure_queue signaltrade-strategy-commands)"
-    awslocal sqs set-queue-attributes --region "$region" --queue-url "$strategy_url" --attributes '{"VisibilityTimeout":"60"}'
+    awslocal sqs set-queue-attributes --region "$region" --queue-url "$strategy_url" --attributes "{\"VisibilityTimeout\":\"60\",\"RedrivePolicy\":\"{\\\"deadLetterTargetArn\\\":\\\"$strategy_dlq_arn\\\",\\\"maxReceiveCount\\\":\\\"5\\\"}\"}"
 
     notification_dlq_url="$(ensure_queue signaltrade-notifications-dlq)"
     notification_dlq_arn="$(awslocal sqs get-queue-attributes --region "$region" --queue-url "$notification_dlq_url" --attribute-names QueueArn --query 'Attributes.QueueArn' --output text)"
