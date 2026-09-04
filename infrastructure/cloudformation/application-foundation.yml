@@ -18,29 +18,120 @@ Parameters:
   RedisNodeType:
     Type: String
     Default: cache.t4g.micro
+  GitHubOidcProviderArn:
+    Type: String
+    Default: arn:aws:iam::832496385575:oidc-provider/token.actions.githubusercontent.com
 
 Resources:
   IdentityRepository:
     Type: AWS::ECR::Repository
-    Properties: {RepositoryName: signaltrade/identity, ImageScanningConfiguration: {ScanOnPush: true}, ImageTagMutability: IMMUTABLE}
+    Properties:
+      RepositoryName: signaltrade/identity
+      ImageScanningConfiguration: {ScanOnPush: true}
+      ImageTagMutability: IMMUTABLE
+      LifecyclePolicy: {LifecyclePolicyText: '{"rules":[{"rulePriority":1,"description":"Expire untagged images after 14 days","selection":{"tagStatus":"untagged","countType":"sinceImagePushed","countUnit":"days","countNumber":14},"action":{"type":"expire"}},{"rulePriority":2,"description":"Keep the latest 30 tagged images","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":30},"action":{"type":"expire"}}]}'}
   StrategyRepository:
     Type: AWS::ECR::Repository
-    Properties: {RepositoryName: signaltrade/strategy, ImageScanningConfiguration: {ScanOnPush: true}, ImageTagMutability: IMMUTABLE}
+    Properties: {RepositoryName: signaltrade/strategy, ImageScanningConfiguration: {ScanOnPush: true}, ImageTagMutability: IMMUTABLE, LifecyclePolicy: {LifecyclePolicyText: '{"rules":[{"rulePriority":1,"description":"Expire untagged images after 14 days","selection":{"tagStatus":"untagged","countType":"sinceImagePushed","countUnit":"days","countNumber":14},"action":{"type":"expire"}},{"rulePriority":2,"description":"Keep the latest 30 tagged images","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":30},"action":{"type":"expire"}}]}'}}
   TradingRepository:
     Type: AWS::ECR::Repository
-    Properties: {RepositoryName: signaltrade/trading, ImageScanningConfiguration: {ScanOnPush: true}, ImageTagMutability: IMMUTABLE}
+    Properties: {RepositoryName: signaltrade/trading, ImageScanningConfiguration: {ScanOnPush: true}, ImageTagMutability: IMMUTABLE, LifecyclePolicy: {LifecyclePolicyText: '{"rules":[{"rulePriority":1,"description":"Expire untagged images after 14 days","selection":{"tagStatus":"untagged","countType":"sinceImagePushed","countUnit":"days","countNumber":14},"action":{"type":"expire"}},{"rulePriority":2,"description":"Keep the latest 30 tagged images","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":30},"action":{"type":"expire"}}]}'}}
   PortfolioRepository:
     Type: AWS::ECR::Repository
-    Properties: {RepositoryName: signaltrade/portfolio, ImageScanningConfiguration: {ScanOnPush: true}, ImageTagMutability: IMMUTABLE}
+    Properties: {RepositoryName: signaltrade/portfolio, ImageScanningConfiguration: {ScanOnPush: true}, ImageTagMutability: IMMUTABLE, LifecyclePolicy: {LifecyclePolicyText: '{"rules":[{"rulePriority":1,"description":"Expire untagged images after 14 days","selection":{"tagStatus":"untagged","countType":"sinceImagePushed","countUnit":"days","countNumber":14},"action":{"type":"expire"}},{"rulePriority":2,"description":"Keep the latest 30 tagged images","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":30},"action":{"type":"expire"}}]}'}}
   MessagingRepository:
     Type: AWS::ECR::Repository
-    Properties: {RepositoryName: signaltrade/messaging, ImageScanningConfiguration: {ScanOnPush: true}, ImageTagMutability: IMMUTABLE}
+    Properties: {RepositoryName: signaltrade/messaging, ImageScanningConfiguration: {ScanOnPush: true}, ImageTagMutability: IMMUTABLE, LifecyclePolicy: {LifecyclePolicyText: '{"rules":[{"rulePriority":1,"description":"Expire untagged images after 14 days","selection":{"tagStatus":"untagged","countType":"sinceImagePushed","countUnit":"days","countNumber":14},"action":{"type":"expire"}},{"rulePriority":2,"description":"Keep the latest 30 tagged images","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":30},"action":{"type":"expire"}}]}'}}
   NotificationRepository:
     Type: AWS::ECR::Repository
-    Properties: {RepositoryName: signaltrade/notification, ImageScanningConfiguration: {ScanOnPush: true}, ImageTagMutability: IMMUTABLE}
+    Properties: {RepositoryName: signaltrade/notification, ImageScanningConfiguration: {ScanOnPush: true}, ImageTagMutability: IMMUTABLE, LifecyclePolicy: {LifecyclePolicyText: '{"rules":[{"rulePriority":1,"description":"Expire untagged images after 14 days","selection":{"tagStatus":"untagged","countType":"sinceImagePushed","countUnit":"days","countNumber":14},"action":{"type":"expire"}},{"rulePriority":2,"description":"Keep the latest 30 tagged images","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":30},"action":{"type":"expire"}}]}'}}
   MigrationsRepository:
     Type: AWS::ECR::Repository
-    Properties: {RepositoryName: signaltrade/migrations, ImageScanningConfiguration: {ScanOnPush: true}, ImageTagMutability: IMMUTABLE}
+    Properties: {RepositoryName: signaltrade/migrations, ImageScanningConfiguration: {ScanOnPush: true}, ImageTagMutability: IMMUTABLE, LifecyclePolicy: {LifecyclePolicyText: '{"rules":[{"rulePriority":1,"description":"Expire untagged images after 14 days","selection":{"tagStatus":"untagged","countType":"sinceImagePushed","countUnit":"days","countNumber":14},"action":{"type":"expire"}},{"rulePriority":2,"description":"Keep the latest 30 tagged images","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":30},"action":{"type":"expire"}}]}'}}
+
+  IdentityCiRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "signaltrade-${Environment}-github-identity-ecr"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {Federated: !Ref GitHubOidcProviderArn}
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: !Sub "repo:KTCloud-Crypto@304250132/signaltrade-identity@1355453391:environment:${Environment}"
+      Policies:
+        - PolicyName: PushIdentityImage
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - {Effect: Allow, Action: ecr:GetAuthorizationToken, Resource: "*"}
+              - Effect: Allow
+                Action: [ecr:BatchCheckLayerAvailability, ecr:CompleteLayerUpload, ecr:GetDownloadUrlForLayer, ecr:InitiateLayerUpload, ecr:PutImage, ecr:UploadLayerPart]
+                Resource: !GetAtt IdentityRepository.Arn
+  StrategyCiRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "signaltrade-${Environment}-github-strategy-ecr"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: [{Effect: Allow, Principal: {Federated: !Ref GitHubOidcProviderArn}, Action: sts:AssumeRoleWithWebIdentity, Condition: {StringEquals: {"token.actions.githubusercontent.com:aud": sts.amazonaws.com, "token.actions.githubusercontent.com:sub": !Sub "repo:KTCloud-Crypto@304250132/signaltrade-strategy@1355453423:environment:${Environment}"}}}]
+      Policies:
+        - PolicyName: PushStrategyImage
+          PolicyDocument: {Version: "2012-10-17", Statement: [{Effect: Allow, Action: ecr:GetAuthorizationToken, Resource: "*"}, {Effect: Allow, Action: [ecr:BatchCheckLayerAvailability, ecr:CompleteLayerUpload, ecr:GetDownloadUrlForLayer, ecr:InitiateLayerUpload, ecr:PutImage, ecr:UploadLayerPart], Resource: !GetAtt StrategyRepository.Arn}]}
+  TradingCiRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "signaltrade-${Environment}-github-trading-ecr"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: [{Effect: Allow, Principal: {Federated: !Ref GitHubOidcProviderArn}, Action: sts:AssumeRoleWithWebIdentity, Condition: {StringEquals: {"token.actions.githubusercontent.com:aud": sts.amazonaws.com, "token.actions.githubusercontent.com:sub": !Sub "repo:KTCloud-Crypto@304250132/signaltrade-trading@1355453449:environment:${Environment}"}}}]
+      Policies:
+        - PolicyName: PushTradingImage
+          PolicyDocument: {Version: "2012-10-17", Statement: [{Effect: Allow, Action: ecr:GetAuthorizationToken, Resource: "*"}, {Effect: Allow, Action: [ecr:BatchCheckLayerAvailability, ecr:CompleteLayerUpload, ecr:GetDownloadUrlForLayer, ecr:InitiateLayerUpload, ecr:PutImage, ecr:UploadLayerPart], Resource: !GetAtt TradingRepository.Arn}]}
+  PortfolioCiRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "signaltrade-${Environment}-github-portfolio-ecr"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: [{Effect: Allow, Principal: {Federated: !Ref GitHubOidcProviderArn}, Action: sts:AssumeRoleWithWebIdentity, Condition: {StringEquals: {"token.actions.githubusercontent.com:aud": sts.amazonaws.com, "token.actions.githubusercontent.com:sub": !Sub "repo:KTCloud-Crypto@304250132/signaltrade-portfolio@1355453477:environment:${Environment}"}}}]
+      Policies:
+        - PolicyName: PushPortfolioImage
+          PolicyDocument: {Version: "2012-10-17", Statement: [{Effect: Allow, Action: ecr:GetAuthorizationToken, Resource: "*"}, {Effect: Allow, Action: [ecr:BatchCheckLayerAvailability, ecr:CompleteLayerUpload, ecr:GetDownloadUrlForLayer, ecr:InitiateLayerUpload, ecr:PutImage, ecr:UploadLayerPart], Resource: !GetAtt PortfolioRepository.Arn}]}
+  MessagingCiRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "signaltrade-${Environment}-github-messaging-ecr"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: [{Effect: Allow, Principal: {Federated: !Ref GitHubOidcProviderArn}, Action: sts:AssumeRoleWithWebIdentity, Condition: {StringEquals: {"token.actions.githubusercontent.com:aud": sts.amazonaws.com, "token.actions.githubusercontent.com:sub": !Sub "repo:KTCloud-Crypto@304250132/signaltrade-messaging@1355453520:environment:${Environment}"}}}]
+      Policies:
+        - PolicyName: PushMessagingImage
+          PolicyDocument: {Version: "2012-10-17", Statement: [{Effect: Allow, Action: ecr:GetAuthorizationToken, Resource: "*"}, {Effect: Allow, Action: [ecr:BatchCheckLayerAvailability, ecr:CompleteLayerUpload, ecr:GetDownloadUrlForLayer, ecr:InitiateLayerUpload, ecr:PutImage, ecr:UploadLayerPart], Resource: !GetAtt MessagingRepository.Arn}]}
+  NotificationCiRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "signaltrade-${Environment}-github-notification-ecr"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: [{Effect: Allow, Principal: {Federated: !Ref GitHubOidcProviderArn}, Action: sts:AssumeRoleWithWebIdentity, Condition: {StringEquals: {"token.actions.githubusercontent.com:aud": sts.amazonaws.com, "token.actions.githubusercontent.com:sub": !Sub "repo:KTCloud-Crypto@304250132/signaltrade-notification@1355453498:environment:${Environment}"}}}]
+      Policies:
+        - PolicyName: PushNotificationImage
+          PolicyDocument: {Version: "2012-10-17", Statement: [{Effect: Allow, Action: ecr:GetAuthorizationToken, Resource: "*"}, {Effect: Allow, Action: [ecr:BatchCheckLayerAvailability, ecr:CompleteLayerUpload, ecr:GetDownloadUrlForLayer, ecr:InitiateLayerUpload, ecr:PutImage, ecr:UploadLayerPart], Resource: !GetAtt NotificationRepository.Arn}]}
+  MigrationsCiRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "signaltrade-${Environment}-github-migrations-ecr"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: [{Effect: Allow, Principal: {Federated: !Ref GitHubOidcProviderArn}, Action: sts:AssumeRoleWithWebIdentity, Condition: {StringEquals: {"token.actions.githubusercontent.com:aud": sts.amazonaws.com, "token.actions.githubusercontent.com:sub": !Sub "repo:KTCloud-Crypto@304250132/signaltrade-core@1355453349:environment:${Environment}"}}}]
+      Policies:
+        - PolicyName: PushMigrationsImage
+          PolicyDocument: {Version: "2012-10-17", Statement: [{Effect: Allow, Action: ecr:GetAuthorizationToken, Resource: "*"}, {Effect: Allow, Action: [ecr:BatchCheckLayerAvailability, ecr:CompleteLayerUpload, ecr:GetDownloadUrlForLayer, ecr:InitiateLayerUpload, ecr:PutImage, ecr:UploadLayerPart], Resource: !GetAtt MigrationsRepository.Arn}]}
 
   TradingCommandsDlq:
     Type: AWS::SQS::Queue
@@ -99,6 +190,43 @@ Resources:
       TransitEncryptionEnabled: true
       SnapshotRetentionLimit: 7
 
+  ApplicationCommonSecret:
+    Type: AWS::SecretsManager::Secret
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Name: !Sub "signaltrade/${Environment}/common"
+      Description: !Sub "SignalTrade ${Environment} shared runtime configuration"
+      SecretString: !Sub
+        - '{"REDIS_URL":"rediss://${RedisEndpoint}:${RedisPort}/0"}'
+        - RedisEndpoint: !GetAtt RedisReplicationGroup.PrimaryEndPoint.Address
+          RedisPort: !GetAtt RedisReplicationGroup.PrimaryEndPoint.Port
+
+  IdentityRuntimeSecret:
+    Type: AWS::SecretsManager::Secret
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Name: !Sub "signaltrade/${Environment}/identity"
+      Description: !Sub "SignalTrade ${Environment} identity credentials"
+      SecretString: "{}"
+  NotificationRuntimeSecret:
+    Type: AWS::SecretsManager::Secret
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Name: !Sub "signaltrade/${Environment}/notification"
+      Description: !Sub "SignalTrade ${Environment} notification credentials"
+      SecretString: "{}"
+  DatabaseRuntimeSecret:
+    Type: AWS::SecretsManager::Secret
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Name: !Sub "signaltrade/${Environment}/database"
+      Description: !Sub "SignalTrade ${Environment} database connection"
+      SecretString: "{}"
+
   MessagingRole:
     Type: AWS::IAM::Role
     Properties:
@@ -152,11 +280,73 @@ Resources:
     Properties: {ClusterName: !Ref ClusterName, Namespace: !Sub "signaltrade-${Environment}", ServiceAccount: notification-worker, RoleArn: !GetAtt NotificationRole.Arn}
 
 Outputs:
+  IdentityRepositoryUri:
+    Value: !GetAtt IdentityRepository.RepositoryUri
+  StrategyRepositoryUri:
+    Value: !GetAtt StrategyRepository.RepositoryUri
+  TradingRepositoryUri:
+    Value: !GetAtt TradingRepository.RepositoryUri
+  PortfolioRepositoryUri:
+    Value: !GetAtt PortfolioRepository.RepositoryUri
+  MessagingRepositoryUri:
+    Value: !GetAtt MessagingRepository.RepositoryUri
+  NotificationRepositoryUri:
+    Value: !GetAtt NotificationRepository.RepositoryUri
+  MigrationsRepositoryUri:
+    Value: !GetAtt MigrationsRepository.RepositoryUri
   RedisEndpoint:
     Value: !GetAtt RedisReplicationGroup.PrimaryEndPoint.Address
+  RedisPort:
+    Value: !GetAtt RedisReplicationGroup.PrimaryEndPoint.Port
+  RedisSecurityGroupId:
+    Value: !GetAtt RedisSecurityGroup.GroupId
+  RedisSubnetGroupName:
+    Value: !Ref RedisSubnetGroup
+  ApplicationCommonSecretArn:
+    Value: !Ref ApplicationCommonSecret
+  IdentityRuntimeSecretArn:
+    Value: !Ref IdentityRuntimeSecret
+  NotificationRuntimeSecretArn:
+    Value: !Ref NotificationRuntimeSecret
+  DatabaseRuntimeSecretArn:
+    Value: !Ref DatabaseRuntimeSecret
   TradingCommandsQueueUrl:
     Value: !Ref TradingCommandsQueue
+  TradingCommandsQueueArn:
+    Value: !GetAtt TradingCommandsQueue.Arn
+  TradingCommandsDlqArn:
+    Value: !GetAtt TradingCommandsDlq.Arn
   StrategyCommandsQueueUrl:
     Value: !Ref StrategyCommandsQueue
+  StrategyCommandsQueueArn:
+    Value: !GetAtt StrategyCommandsQueue.Arn
+  StrategyCommandsDlqArn:
+    Value: !GetAtt StrategyCommandsDlq.Arn
   NotificationsQueueUrl:
     Value: !Ref NotificationsQueue
+  NotificationsQueueArn:
+    Value: !GetAtt NotificationsQueue.Arn
+  NotificationsDlqArn:
+    Value: !GetAtt NotificationsDlq.Arn
+  MessagingPodIdentityRoleArn:
+    Value: !GetAtt MessagingRole.Arn
+  TradingPodIdentityRoleArn:
+    Value: !GetAtt TradingRole.Arn
+  StrategyPodIdentityRoleArn:
+    Value: !GetAtt StrategyRole.Arn
+  NotificationPodIdentityRoleArn:
+    Value: !GetAtt NotificationRole.Arn
+  IdentityCiRoleArn:
+    Value: !GetAtt IdentityCiRole.Arn
+  StrategyCiRoleArn:
+    Value: !GetAtt StrategyCiRole.Arn
+  TradingCiRoleArn:
+    Value: !GetAtt TradingCiRole.Arn
+  PortfolioCiRoleArn:
+    Value: !GetAtt PortfolioCiRole.Arn
+  MessagingCiRoleArn:
+    Value: !GetAtt MessagingCiRole.Arn
+  NotificationCiRoleArn:
+    Value: !GetAtt NotificationCiRole.Arn
+  MigrationsCiRoleArn:
+    Value: !GetAtt MigrationsCiRole.Arn

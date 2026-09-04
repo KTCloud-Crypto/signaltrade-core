@@ -54,25 +54,6 @@ Parameters:
     Default: Single
     AllowedValues: [Single, HighlyAvailable]
     Description: Single은 NAT Gateway 1개를 사용하고 HighlyAvailable은 AZ마다 1개를 생성합니다.
-  NodeInstanceTypes:
-    Type: CommaDelimitedList
-    Default: t3.small
-  NodeDesiredSize:
-    Type: Number
-    Default: 2
-    MinValue: 2
-  NodeMinimumSize:
-    Type: Number
-    Default: 2
-    MinValue: 2
-  NodeMaximumSize:
-    Type: Number
-    Default: 4
-    MinValue: 2
-  NodeDiskSizeGiB:
-    Type: Number
-    Default: 20
-    MinValue: 20
 Conditions:
   UseHighlyAvailableNat: !Equals [!Ref NatGatewayMode, HighlyAvailable]
   UseSingleNat: !Equals [!Ref NatGatewayMode, Single]
@@ -634,32 +615,6 @@ Resources:
       AddonName: aws-ebs-csi-driver
       ClusterName: !Ref EksCluster
       ResolveConflicts: OVERWRITE
-
-  ManagedNodeGroup:
-    Type: AWS::EKS::Nodegroup
-    DependsOn: [VpcCniAddon, KubeProxyAddon, CoreDnsAddon, PrivateDefaultRouteA]
-    Properties:
-      ClusterName: !Ref EksCluster
-      NodegroupName: system-apps-small
-      NodeRole: !GetAtt EksNodeRole.Arn
-      AmiType: AL2023_x86_64_STANDARD
-      CapacityType: ON_DEMAND
-      DiskSize: !Ref NodeDiskSizeGiB
-      InstanceTypes: !Ref NodeInstanceTypes
-      Subnets: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
-      ScalingConfig:
-        DesiredSize: !Ref NodeDesiredSize
-        MinSize: !Ref NodeMinimumSize
-        MaxSize: !Ref NodeMaximumSize
-      UpdateConfig:
-        MaxUnavailable: 1
-      NodeRepairConfig:
-        Enabled: true
-      Labels:
-        workload: general
-      Tags:
-        Project: SignalTrade
-        Environment: staging
 
   RdsIngressFromEksClusterSecurityGroup:
     Type: AWS::EC2::SecurityGroupIngress

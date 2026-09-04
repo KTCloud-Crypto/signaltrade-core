@@ -1,0 +1,65 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: SignalTrade MSA dedicated EKS managed node group
+
+Parameters:
+  ClusterName:
+    Type: String
+    Default: signaltrade-staging
+  NodeRoleArn:
+    Type: String
+  PrivateSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+  InstanceTypes:
+    Type: CommaDelimitedList
+    Default: c7i-flex.large
+  DesiredSize:
+    Type: Number
+    Default: 4
+    MinValue: 1
+  MinimumSize:
+    Type: Number
+    Default: 4
+    MinValue: 1
+  MaximumSize:
+    Type: Number
+    Default: 6
+    MinValue: 1
+  DiskSizeGiB:
+    Type: Number
+    Default: 20
+    MinValue: 20
+
+Resources:
+  MsaNodeGroup:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !Ref ClusterName
+      NodegroupName: msa-apps
+      NodeRole: !Ref NodeRoleArn
+      AmiType: AL2023_x86_64_STANDARD
+      CapacityType: ON_DEMAND
+      DiskSize: !Ref DiskSizeGiB
+      InstanceTypes: !Ref InstanceTypes
+      Subnets: !Ref PrivateSubnetIds
+      ScalingConfig:
+        DesiredSize: !Ref DesiredSize
+        MinSize: !Ref MinimumSize
+        MaxSize: !Ref MaximumSize
+      UpdateConfig:
+        MaxUnavailable: 1
+      NodeRepairConfig:
+        Enabled: true
+      Labels:
+        workload: msa
+      Tags:
+        Project: SignalTrade
+        Environment: staging
+        Workload: msa
+
+Outputs:
+  NodeGroupName:
+    Value: !Ref MsaNodeGroup
+  InstanceTypes:
+    Value: !Join [",", !Ref InstanceTypes]
+  DesiredSize:
+    Value: !Ref DesiredSize

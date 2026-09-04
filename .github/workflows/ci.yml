@@ -61,3 +61,20 @@ jobs:
           docker run --rm --network host \
             -e DATABASE_URL=postgresql://signaltrade:signaltrade@127.0.0.1:5432/signaltrade \
             signaltrade-migrations:ci current | grep --quiet '(head)'
+
+  publish-staging-migrations:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    needs: [validate-cloudformation, test-and-migrate]
+    runs-on: ubuntu-latest
+    environment: staging
+    permissions: {contents: read, id-token: write}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with: {role-to-assume: "arn:aws:iam::832496385575:role/signaltrade-staging-github-migrations-ecr", aws-region: us-east-1}
+      - uses: aws-actions/amazon-ecr-login@v2
+      - uses: docker/build-push-action@v6
+        with:
+          context: database
+          push: true
+          tags: "832496385575.dkr.ecr.us-east-1.amazonaws.com/signaltrade/migrations:${{ github.sha }}"
