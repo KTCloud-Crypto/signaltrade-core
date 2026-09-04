@@ -6,6 +6,7 @@ SignalTrade를 구성하는 여러 서비스를 같은 환경에 배치하고 �
 
 - 전체 서비스가 공유하는 PostgreSQL 스키마 migration 관리
 - 로컬 Kubernetes(kind) 클러스터와 기반 서비스 구성
+- CloudFormation 기반 AWS 인프라(EKS, S3/CloudFront, 보안, ECR, SQS, Redis) 관리
 - 로컬 개발용 PostgreSQL, Redis, LocalStack SQS 구성
 - 서비스 주소, 환경 변수, Secret 주입 방식 관리
 - Argo CD와 GitOps 배포 선언은 별도 `signaltrade-gitops` 저장소에서 관리
@@ -38,8 +39,11 @@ Queue는 역할별로 세 개입니다.
 - `database/`: 전체 DB 스키마 migration
 - `packages/`: 공통 메시지 계약과 보조 패키지
 - `infrastructure/local/kind/`: 로컬 Kubernetes 실행 환경
+- `infrastructure/cloudformation/`: AWS 기반 인프라와 MSA 의존 자원
 - `scripts/`: 로컬 환경 구성·검증 스크립트
 
 Core에는 kind 클러스터 설정과 개발용 PostgreSQL·Redis·LocalStack을 유지합니다. 애플리케이션 Deployment, migration Job, ingress 설정, Helm values와 Argo CD Application은 `signaltrade-gitops`에서 관리합니다.
+
+AWS 인프라는 CloudFormation을 단일 기준으로 관리합니다. 동일 리소스를 Terraform에서 중복 관리하지 않습니다.
 
 Core는 실제 주문이나 인증 로직을 구현하지 않습니다. 서비스 코드는 각 저장소에서 이미지로 만들고, `signaltrade-gitops`의 배포 선언이 해당 이미지를 kind 또는 EKS에 배포합니다.

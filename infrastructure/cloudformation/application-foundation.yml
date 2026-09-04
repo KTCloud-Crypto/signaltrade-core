@@ -1,0 +1,162 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: SignalTrade MSA application dependencies for EKS (ECR, SQS, Redis and Pod Identity)
+
+Parameters:
+  ClusterName:
+    Type: String
+    Default: signaltrade-staging
+  Environment:
+    Type: String
+    Default: staging
+    AllowedValues: [staging, production]
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  PrivateSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+  EksClusterSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+  RedisNodeType:
+    Type: String
+    Default: cache.t4g.micro
+
+Resources:
+  IdentityRepository:
+    Type: AWS::ECR::Repository
+    Properties: {RepositoryName: signaltrade/identity, ImageScanningConfiguration: {ScanOnPush: true}, ImageTagMutability: IMMUTABLE}
+  StrategyRepository:
+    Type: AWS::ECR::Repository
+    Properties: {RepositoryName: signaltrade/strategy, ImageScanningConfiguration: {ScanOnPush: true}, ImageTagMutability: IMMUTABLE}
+  TradingRepository:
+    Type: AWS::ECR::Repository
+    Properties: {RepositoryName: signaltrade/trading, ImageScanningConfiguration: {ScanOnPush: true}, ImageTagMutability: IMMUTABLE}
+  PortfolioRepository:
+    Type: AWS::ECR::Repository
+    Properties: {RepositoryName: signaltrade/portfolio, ImageScanningConfiguration: {ScanOnPush: true}, ImageTagMutability: IMMUTABLE}
+  MessagingRepository:
+    Type: AWS::ECR::Repository
+    Properties: {RepositoryName: signaltrade/messaging, ImageScanningConfiguration: {ScanOnPush: true}, ImageTagMutability: IMMUTABLE}
+  NotificationRepository:
+    Type: AWS::ECR::Repository
+    Properties: {RepositoryName: signaltrade/notification, ImageScanningConfiguration: {ScanOnPush: true}, ImageTagMutability: IMMUTABLE}
+  MigrationsRepository:
+    Type: AWS::ECR::Repository
+    Properties: {RepositoryName: signaltrade/migrations, ImageScanningConfiguration: {ScanOnPush: true}, ImageTagMutability: IMMUTABLE}
+
+  TradingCommandsDlq:
+    Type: AWS::SQS::Queue
+    Properties: {QueueName: signaltrade-trading-commands-dlq, MessageRetentionPeriod: 1209600, SqsManagedSseEnabled: true}
+  TradingCommandsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: signaltrade-trading-commands
+      VisibilityTimeout: 300
+      SqsManagedSseEnabled: true
+      RedrivePolicy: {deadLetterTargetArn: !GetAtt TradingCommandsDlq.Arn, maxReceiveCount: 5}
+  StrategyCommandsDlq:
+    Type: AWS::SQS::Queue
+    Properties: {QueueName: signaltrade-strategy-commands-dlq, MessageRetentionPeriod: 1209600, SqsManagedSseEnabled: true}
+  StrategyCommandsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: signaltrade-strategy-commands
+      VisibilityTimeout: 60
+      SqsManagedSseEnabled: true
+      RedrivePolicy: {deadLetterTargetArn: !GetAtt StrategyCommandsDlq.Arn, maxReceiveCount: 5}
+  NotificationsDlq:
+    Type: AWS::SQS::Queue
+    Properties: {QueueName: signaltrade-notifications-dlq, MessageRetentionPeriod: 1209600, SqsManagedSseEnabled: true}
+  NotificationsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: signaltrade-notifications
+      VisibilityTimeout: 120
+      SqsManagedSseEnabled: true
+      RedrivePolicy: {deadLetterTargetArn: !GetAtt NotificationsDlq.Arn, maxReceiveCount: 5}
+
+  RedisSubnetGroup:
+    Type: AWS::ElastiCache::SubnetGroup
+    Properties: {Description: SignalTrade private Redis subnets, SubnetIds: !Ref PrivateSubnetIds}
+  RedisSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Redis access from SignalTrade EKS
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - {IpProtocol: tcp, FromPort: 6379, ToPort: 6379, SourceSecurityGroupId: !Ref EksClusterSecurityGroupId}
+  RedisReplicationGroup:
+    Type: AWS::ElastiCache::ReplicationGroup
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+    Properties:
+      ReplicationGroupDescription: !Sub "SignalTrade ${Environment} Redis"
+      Engine: redis
+      CacheNodeType: !Ref RedisNodeType
+      CacheSubnetGroupName: !Ref RedisSubnetGroup
+      SecurityGroupIds: [!Ref RedisSecurityGroup]
+      NumCacheClusters: 1
+      AutomaticFailoverEnabled: false
+      AtRestEncryptionEnabled: true
+      TransitEncryptionEnabled: true
+      SnapshotRetentionLimit: 7
+
+  MessagingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: [{Effect: Allow, Principal: {Service: pods.eks.amazonaws.com}, Action: [sts:AssumeRole, sts:TagSession]}]
+      Policies:
+        - PolicyName: PublishSignalTradeQueues
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement: [{Effect: Allow, Action: [sqs:GetQueueUrl, sqs:GetQueueAttributes, sqs:SendMessage], Resource: [!GetAtt TradingCommandsQueue.Arn, !GetAtt StrategyCommandsQueue.Arn, !GetAtt NotificationsQueue.Arn]}]
+  TradingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: [{Effect: Allow, Principal: {Service: pods.eks.amazonaws.com}, Action: [sts:AssumeRole, sts:TagSession]}]
+      Policies:
+        - PolicyName: ConsumeTradingCommands
+          PolicyDocument: {Version: "2012-10-17", Statement: [{Effect: Allow, Action: [sqs:GetQueueUrl, sqs:GetQueueAttributes, sqs:ReceiveMessage, sqs:DeleteMessage, sqs:ChangeMessageVisibility], Resource: !GetAtt TradingCommandsQueue.Arn}]}
+  StrategyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: [{Effect: Allow, Principal: {Service: pods.eks.amazonaws.com}, Action: [sts:AssumeRole, sts:TagSession]}]
+      Policies:
+        - PolicyName: ConsumeStrategyCommands
+          PolicyDocument: {Version: "2012-10-17", Statement: [{Effect: Allow, Action: [sqs:GetQueueUrl, sqs:GetQueueAttributes, sqs:ReceiveMessage, sqs:DeleteMessage, sqs:ChangeMessageVisibility], Resource: !GetAtt StrategyCommandsQueue.Arn}]}
+  NotificationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: [{Effect: Allow, Principal: {Service: pods.eks.amazonaws.com}, Action: [sts:AssumeRole, sts:TagSession]}]
+      Policies:
+        - PolicyName: ConsumeNotifications
+          PolicyDocument: {Version: "2012-10-17", Statement: [{Effect: Allow, Action: [sqs:GetQueueUrl, sqs:GetQueueAttributes, sqs:ReceiveMessage, sqs:DeleteMessage, sqs:ChangeMessageVisibility], Resource: !GetAtt NotificationsQueue.Arn}]}
+
+  MessagingAssociation:
+    Type: AWS::EKS::PodIdentityAssociation
+    Properties: {ClusterName: !Ref ClusterName, Namespace: !Sub "signaltrade-${Environment}", ServiceAccount: messaging-worker, RoleArn: !GetAtt MessagingRole.Arn}
+  TradingAssociation:
+    Type: AWS::EKS::PodIdentityAssociation
+    Properties: {ClusterName: !Ref ClusterName, Namespace: !Sub "signaltrade-${Environment}", ServiceAccount: trading-worker, RoleArn: !GetAtt TradingRole.Arn}
+  StrategyAssociation:
+    Type: AWS::EKS::PodIdentityAssociation
+    Properties: {ClusterName: !Ref ClusterName, Namespace: !Sub "signaltrade-${Environment}", ServiceAccount: strategy-worker, RoleArn: !GetAtt StrategyRole.Arn}
+  NotificationAssociation:
+    Type: AWS::EKS::PodIdentityAssociation
+    Properties: {ClusterName: !Ref ClusterName, Namespace: !Sub "signaltrade-${Environment}", ServiceAccount: notification-worker, RoleArn: !GetAtt NotificationRole.Arn}
+
+Outputs:
+  RedisEndpoint:
+    Value: !GetAtt RedisReplicationGroup.PrimaryEndPoint.Address
+  TradingCommandsQueueUrl:
+    Value: !Ref TradingCommandsQueue
+  StrategyCommandsQueueUrl:
+    Value: !Ref StrategyCommandsQueue
+  NotificationsQueueUrl:
+    Value: !Ref NotificationsQueue
