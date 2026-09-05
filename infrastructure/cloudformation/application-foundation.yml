@@ -70,7 +70,7 @@ Resources:
             Statement:
               - {Effect: Allow, Action: ecr:GetAuthorizationToken, Resource: "*"}
               - Effect: Allow
-                Action: [ecr:BatchCheckLayerAvailability, ecr:CompleteLayerUpload, ecr:GetDownloadUrlForLayer, ecr:InitiateLayerUpload, ecr:PutImage, ecr:UploadLayerPart]
+                Action: [ecr:BatchCheckLayerAvailability, ecr:BatchGetImage, ecr:CompleteLayerUpload, ecr:GetDownloadUrlForLayer, ecr:InitiateLayerUpload, ecr:PutImage, ecr:UploadLayerPart]
                 Resource: !GetAtt IdentityRepository.Arn
   StrategyCiRole:
     Type: AWS::IAM::Role
@@ -81,7 +81,7 @@ Resources:
         Statement: [{Effect: Allow, Principal: {Federated: !Ref GitHubOidcProviderArn}, Action: sts:AssumeRoleWithWebIdentity, Condition: {StringEquals: {"token.actions.githubusercontent.com:aud": sts.amazonaws.com, "token.actions.githubusercontent.com:sub": !Sub "repo:KTCloud-Crypto@304250132/signaltrade-strategy@1355453423:environment:${Environment}"}}}]
       Policies:
         - PolicyName: PushStrategyImage
-          PolicyDocument: {Version: "2012-10-17", Statement: [{Effect: Allow, Action: ecr:GetAuthorizationToken, Resource: "*"}, {Effect: Allow, Action: [ecr:BatchCheckLayerAvailability, ecr:CompleteLayerUpload, ecr:GetDownloadUrlForLayer, ecr:InitiateLayerUpload, ecr:PutImage, ecr:UploadLayerPart], Resource: !GetAtt StrategyRepository.Arn}]}
+          PolicyDocument: {Version: "2012-10-17", Statement: [{Effect: Allow, Action: ecr:GetAuthorizationToken, Resource: "*"}, {Effect: Allow, Action: [ecr:BatchCheckLayerAvailability, ecr:BatchGetImage, ecr:CompleteLayerUpload, ecr:GetDownloadUrlForLayer, ecr:InitiateLayerUpload, ecr:PutImage, ecr:UploadLayerPart], Resource: !GetAtt StrategyRepository.Arn}]}
   TradingCiRole:
     Type: AWS::IAM::Role
     Properties:
@@ -91,7 +91,7 @@ Resources:
         Statement: [{Effect: Allow, Principal: {Federated: !Ref GitHubOidcProviderArn}, Action: sts:AssumeRoleWithWebIdentity, Condition: {StringEquals: {"token.actions.githubusercontent.com:aud": sts.amazonaws.com, "token.actions.githubusercontent.com:sub": !Sub "repo:KTCloud-Crypto@304250132/signaltrade-trading@1355453449:environment:${Environment}"}}}]
       Policies:
         - PolicyName: PushTradingImage
-          PolicyDocument: {Version: "2012-10-17", Statement: [{Effect: Allow, Action: ecr:GetAuthorizationToken, Resource: "*"}, {Effect: Allow, Action: [ecr:BatchCheckLayerAvailability, ecr:CompleteLayerUpload, ecr:GetDownloadUrlForLayer, ecr:InitiateLayerUpload, ecr:PutImage, ecr:UploadLayerPart], Resource: !GetAtt TradingRepository.Arn}]}
+          PolicyDocument: {Version: "2012-10-17", Statement: [{Effect: Allow, Action: ecr:GetAuthorizationToken, Resource: "*"}, {Effect: Allow, Action: [ecr:BatchCheckLayerAvailability, ecr:BatchGetImage, ecr:CompleteLayerUpload, ecr:GetDownloadUrlForLayer, ecr:InitiateLayerUpload, ecr:PutImage, ecr:UploadLayerPart], Resource: !GetAtt TradingRepository.Arn}]}
   PortfolioCiRole:
     Type: AWS::IAM::Role
     Properties:
@@ -101,7 +101,7 @@ Resources:
         Statement: [{Effect: Allow, Principal: {Federated: !Ref GitHubOidcProviderArn}, Action: sts:AssumeRoleWithWebIdentity, Condition: {StringEquals: {"token.actions.githubusercontent.com:aud": sts.amazonaws.com, "token.actions.githubusercontent.com:sub": !Sub "repo:KTCloud-Crypto@304250132/signaltrade-portfolio@1355453477:environment:${Environment}"}}}]
       Policies:
         - PolicyName: PushPortfolioImage
-          PolicyDocument: {Version: "2012-10-17", Statement: [{Effect: Allow, Action: ecr:GetAuthorizationToken, Resource: "*"}, {Effect: Allow, Action: [ecr:BatchCheckLayerAvailability, ecr:CompleteLayerUpload, ecr:GetDownloadUrlForLayer, ecr:InitiateLayerUpload, ecr:PutImage, ecr:UploadLayerPart], Resource: !GetAtt PortfolioRepository.Arn}]}
+          PolicyDocument: {Version: "2012-10-17", Statement: [{Effect: Allow, Action: ecr:GetAuthorizationToken, Resource: "*"}, {Effect: Allow, Action: [ecr:BatchCheckLayerAvailability, ecr:BatchGetImage, ecr:CompleteLayerUpload, ecr:GetDownloadUrlForLayer, ecr:InitiateLayerUpload, ecr:PutImage, ecr:UploadLayerPart], Resource: !GetAtt PortfolioRepository.Arn}]}
   MessagingCiRole:
     Type: AWS::IAM::Role
     Properties:
@@ -111,7 +111,7 @@ Resources:
         Statement: [{Effect: Allow, Principal: {Federated: !Ref GitHubOidcProviderArn}, Action: sts:AssumeRoleWithWebIdentity, Condition: {StringEquals: {"token.actions.githubusercontent.com:aud": sts.amazonaws.com, "token.actions.githubusercontent.com:sub": !Sub "repo:KTCloud-Crypto@304250132/signaltrade-messaging@1355453520:environment:${Environment}"}}}]
       Policies:
         - PolicyName: PushMessagingImage
-          PolicyDocument: {Version: "2012-10-17", Statement: [{Effect: Allow, Action: ecr:GetAuthorizationToken, Resource: "*"}, {Effect: Allow, Action: [ecr:BatchCheckLayerAvailability, ecr:CompleteLayerUpload, ecr:GetDownloadUrlForLayer, ecr:InitiateLayerUpload, ecr:PutImage, ecr:UploadLayerPart], Resource: !GetAtt MessagingRepository.Arn}]}
+          PolicyDocument: {Version: "2012-10-17", Statement: [{Effect: Allow, Action: ecr:GetAuthorizationToken, Resource: "*"}, {Effect: Allow, Action: [ecr:BatchCheckLayerAvailability, ecr:BatchGetImage, ecr:CompleteLayerUpload, ecr:GetDownloadUrlForLayer, ecr:InitiateLayerUpload, ecr:PutImage, ecr:UploadLayerPart], Resource: !GetAtt MessagingRepository.Arn}]}
   NotificationCiRole:
     Type: AWS::IAM::Role
     Properties:
@@ -121,7 +121,7 @@ Resources:
         Statement: [{Effect: Allow, Principal: {Federated: !Ref GitHubOidcProviderArn}, Action: sts:AssumeRoleWithWebIdentity, Condition: {StringEquals: {"token.actions.githubusercontent.com:aud": sts.amazonaws.com, "token.actions.githubusercontent.com:sub": !Sub "repo:KTCloud-Crypto@304250132/signaltrade-notification@1355453498:environment:${Environment}"}}}]
       Policies:
         - PolicyName: PushNotificationImage
-          PolicyDocument: {Version: "2012-10-17", Statement: [{Effect: Allow, Action: ecr:GetAuthorizationToken, Resource: "*"}, {Effect: Allow, Action: [ecr:BatchCheckLayerAvailability, ecr:CompleteLayerUpload, ecr:GetDownloadUrlForLayer, ecr:InitiateLayerUpload, ecr:PutImage, ecr:UploadLayerPart], Resource: !GetAtt NotificationRepository.Arn}]}
+          PolicyDocument: {Version: "2012-10-17", Statement: [{Effect: Allow, Action: ecr:GetAuthorizationToken, Resource: "*"}, {Effect: Allow, Action: [ecr:BatchCheckLayerAvailability, ecr:BatchGetImage, ecr:CompleteLayerUpload, ecr:GetDownloadUrlForLayer, ecr:InitiateLayerUpload, ecr:PutImage, ecr:UploadLayerPart], Resource: !GetAtt NotificationRepository.Arn}]}
   MigrationsCiRole:
     Type: AWS::IAM::Role
     Properties:
@@ -131,7 +131,7 @@ Resources:
         Statement: [{Effect: Allow, Principal: {Federated: !Ref GitHubOidcProviderArn}, Action: sts:AssumeRoleWithWebIdentity, Condition: {StringEquals: {"token.actions.githubusercontent.com:aud": sts.amazonaws.com, "token.actions.githubusercontent.com:sub": !Sub "repo:KTCloud-Crypto@304250132/signaltrade-core@1355453349:environment:${Environment}"}}}]
       Policies:
         - PolicyName: PushMigrationsImage
-          PolicyDocument: {Version: "2012-10-17", Statement: [{Effect: Allow, Action: ecr:GetAuthorizationToken, Resource: "*"}, {Effect: Allow, Action: [ecr:BatchCheckLayerAvailability, ecr:CompleteLayerUpload, ecr:GetDownloadUrlForLayer, ecr:InitiateLayerUpload, ecr:PutImage, ecr:UploadLayerPart], Resource: !GetAtt MigrationsRepository.Arn}]}
+          PolicyDocument: {Version: "2012-10-17", Statement: [{Effect: Allow, Action: ecr:GetAuthorizationToken, Resource: "*"}, {Effect: Allow, Action: [ecr:BatchCheckLayerAvailability, ecr:BatchGetImage, ecr:CompleteLayerUpload, ecr:GetDownloadUrlForLayer, ecr:InitiateLayerUpload, ecr:PutImage, ecr:UploadLayerPart], Resource: !GetAtt MigrationsRepository.Arn}]}
 
   TradingCommandsDlq:
     Type: AWS::SQS::Queue
