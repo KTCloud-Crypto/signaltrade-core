@@ -1,0 +1,201 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: SignalTrade staging weekday business-hours scheduler for EKS nodes and RDS
+
+Parameters:
+  ClusterName:
+    Type: String
+    Default: signaltrade-staging
+  NodeGroupName:
+    Type: String
+    Default: msa-apps
+  DesiredSize:
+    Type: Number
+    Default: 4
+    MinValue: 1
+  MaximumSize:
+    Type: Number
+    Default: 6
+    MinValue: 1
+  DbInstanceIdentifier:
+    Type: String
+    Default: signaltrade-postgres
+  ScheduleTimeZone:
+    Type: String
+    Default: Asia/Seoul
+
+Resources:
+  SchedulerFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {Service: lambda.amazonaws.com}
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: ManageStagingBusinessHours
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: eks:UpdateNodegroupConfig
+                Resource: !Sub "arn:${AWS::Partition}:eks:${AWS::Region}:${AWS::AccountId}:nodegroup/${ClusterName}/${NodeGroupName}/*"
+              - Effect: Allow
+                Action:
+                  - rds:StartDBInstance
+                  - rds:StopDBInstance
+                Resource: !Sub "arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:db:${DbInstanceIdentifier}"
+              - Effect: Allow
+                Action: rds:DescribeDBInstances
+                Resource: "*"
+
+  SchedulerFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Starts and stops SignalTrade staging compute on weekdays
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !GetAtt SchedulerFunctionRole.Arn
+      Timeout: 60
+      Environment:
+        Variables:
+          CLUSTER_NAME: !Ref ClusterName
+          NODE_GROUP_NAME: !Ref NodeGroupName
+          DESIRED_SIZE: !Ref DesiredSize
+          MAXIMUM_SIZE: !Ref MaximumSize
+          DB_INSTANCE_IDENTIFIER: !Ref DbInstanceIdentifier
+      Code:
+        ZipFile: |
+          import json
+          import os
+
+          import boto3
+
+          eks = boto3.client("eks")
+          rds = boto3.client("rds")
+
+
+          def handler(event, context):
+              del context
+              action = event["action"]
+              if action == "start-rds":
+                  return set_rds_state(start=True)
+              if action == "start-eks":
+                  return set_nodegroup_size(int(os.environ["DESIRED_SIZE"]))
+              if action == "stop-eks":
+                  return set_nodegroup_size(0)
+              if action == "stop-rds":
+                  return set_rds_state(start=False)
+              raise ValueError(f"Unsupported action: {action}")
+
+
+          def set_nodegroup_size(desired_size):
+              response = eks.update_nodegroup_config(
+                  clusterName=os.environ["CLUSTER_NAME"],
+                  nodegroupName=os.environ["NODE_GROUP_NAME"],
+                  scalingConfig={
+                      "minSize": 0,
+                      "maxSize": int(os.environ["MAXIMUM_SIZE"]),
+                      "desiredSize": desired_size,
+                  },
+              )
+              return {"action": "eks", "desiredSize": desired_size, "updateId": response["update"]["id"]}
+
+
+          def set_rds_state(start):
+              identifier = os.environ["DB_INSTANCE_IDENTIFIER"]
+              status = rds.describe_db_instances(DBInstanceIdentifier=identifier)["DBInstances"][0]["DBInstanceStatus"]
+              if start and status == "stopped":
+                  rds.start_db_instance(DBInstanceIdentifier=identifier)
+                  result = "starting"
+              elif not start and status == "available":
+                  rds.stop_db_instance(DBInstanceIdentifier=identifier)
+                  result = "stopping"
+              else:
+                  result = f"unchanged:{status}"
+              return {"action": "rds", "result": result}
+
+  SchedulerInvokeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {Service: scheduler.amazonaws.com}
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: InvokeBusinessHoursFunction
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !GetAtt SchedulerFunction.Arn
+
+  WeekdayRdsStart:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Description: Start staging RDS at 07:15 KST on weekdays
+      FlexibleTimeWindow: {Mode: "OFF"}
+      ScheduleExpression: cron(15 7 ? * MON-FRI *)
+      ScheduleExpressionTimezone: !Ref ScheduleTimeZone
+      State: ENABLED
+      Target:
+        Arn: !GetAtt SchedulerFunction.Arn
+        RoleArn: !GetAtt SchedulerInvokeRole.Arn
+        Input: '{"action":"start-rds"}'
+        RetryPolicy: {MaximumEventAgeInSeconds: 3600, MaximumRetryAttempts: 2}
+
+  WeekdayEksStart:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Description: Scale staging EKS nodes to four at 07:30 KST on weekdays
+      FlexibleTimeWindow: {Mode: "OFF"}
+      ScheduleExpression: cron(30 7 ? * MON-FRI *)
+      ScheduleExpressionTimezone: !Ref ScheduleTimeZone
+      State: ENABLED
+      Target:
+        Arn: !GetAtt SchedulerFunction.Arn
+        RoleArn: !GetAtt SchedulerInvokeRole.Arn
+        Input: '{"action":"start-eks"}'
+        RetryPolicy: {MaximumEventAgeInSeconds: 3600, MaximumRetryAttempts: 2}
+
+  WeekdayEksStop:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Description: Scale staging EKS nodes to zero at 19:00 KST on weekdays
+      FlexibleTimeWindow: {Mode: "OFF"}
+      ScheduleExpression: cron(0 19 ? * MON-FRI *)
+      ScheduleExpressionTimezone: !Ref ScheduleTimeZone
+      State: ENABLED
+      Target:
+        Arn: !GetAtt SchedulerFunction.Arn
+        RoleArn: !GetAtt SchedulerInvokeRole.Arn
+        Input: '{"action":"stop-eks"}'
+        RetryPolicy: {MaximumEventAgeInSeconds: 3600, MaximumRetryAttempts: 2}
+
+  WeekdayRdsStop:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Description: Stop staging RDS at 19:10 KST on weekdays
+      FlexibleTimeWindow: {Mode: "OFF"}
+      ScheduleExpression: cron(10 19 ? * MON-FRI *)
+      ScheduleExpressionTimezone: !Ref ScheduleTimeZone
+      State: ENABLED
+      Target:
+        Arn: !GetAtt SchedulerFunction.Arn
+        RoleArn: !GetAtt SchedulerInvokeRole.Arn
+        Input: '{"action":"stop-rds"}'
+        RetryPolicy: {MaximumEventAgeInSeconds: 3600, MaximumRetryAttempts: 2}
+
+Outputs:
+  SchedulerFunctionArn:
+    Value: !GetAtt SchedulerFunction.Arn
+  TimeZone:
+    Value: !Ref ScheduleTimeZone
+  WeekdayWindow:
+    Value: "RDS 07:15-19:10, EKS nodes 07:30-19:00 (Monday-Friday)"

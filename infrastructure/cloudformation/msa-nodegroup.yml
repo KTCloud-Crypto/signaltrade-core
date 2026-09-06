@@ -19,11 +19,11 @@ Parameters:
   DesiredSize:
     Type: Number
     Default: 4
-    MinValue: 1
+    MinValue: 0
   MinimumSize:
     Type: Number
-    Default: 4
-    MinValue: 1
+    Default: 0
+    MinValue: 0
   MaximumSize:
     Type: Number
     Default: 6

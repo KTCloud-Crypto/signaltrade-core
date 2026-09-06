@@ -6,6 +6,7 @@
   ElastiCache Redis, Worker Pod Identity, 공통 runtime Secret
 - `runtime-secrets.yml`: 환경별 `common`, `identity`, `notification`, `database` Secret 컨테이너
 - `external-secrets-staging-access.yml`: 기존 External Secrets Role의 staging 경로 읽기 권한
+- `staging-business-hours.yml`: 평일 KST 기준 RDS와 EKS 노드그룹 자동 시작·중지
 - `frontend-cloudfront.yml`: 프론트엔드 S3, CloudFront, API/모니터링 ALB origin, Route 53
 - `security-baseline.yml`: CloudTrail과 감사 로그 버킷
 
