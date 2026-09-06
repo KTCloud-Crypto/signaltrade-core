@@ -164,6 +164,88 @@ Resources:
       SqsManagedSseEnabled: true
       RedrivePolicy: {deadLetterTargetArn: !GetAtt NotificationsDlq.Arn, maxReceiveCount: 5}
 
+  TradingQueueAgeAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Trading command queue has messages older than five minutes
+      Namespace: AWS/SQS
+      MetricName: ApproximateAgeOfOldestMessage
+      Dimensions: [{Name: QueueName, Value: !GetAtt TradingCommandsQueue.QueueName}]
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      Threshold: 300
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+  StrategyQueueAgeAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Strategy command queue has messages older than five minutes
+      Namespace: AWS/SQS
+      MetricName: ApproximateAgeOfOldestMessage
+      Dimensions: [{Name: QueueName, Value: !GetAtt StrategyCommandsQueue.QueueName}]
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      Threshold: 300
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+  NotificationQueueAgeAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Notification queue has messages older than five minutes
+      Namespace: AWS/SQS
+      MetricName: ApproximateAgeOfOldestMessage
+      Dimensions: [{Name: QueueName, Value: !GetAtt NotificationsQueue.QueueName}]
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      Threshold: 300
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+  TradingDlqAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Trading dead-letter queue contains messages
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions: [{Name: QueueName, Value: !GetAtt TradingCommandsDlq.QueueName}]
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+  StrategyDlqAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Strategy dead-letter queue contains messages
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions: [{Name: QueueName, Value: !GetAtt StrategyCommandsDlq.QueueName}]
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+  NotificationDlqAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Notification dead-letter queue contains messages
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions: [{Name: QueueName, Value: !GetAtt NotificationsDlq.QueueName}]
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+
   RedisSubnetGroup:
     Type: AWS::ElastiCache::SubnetGroup
     Properties: {Description: SignalTrade private Redis subnets, SubnetIds: !Ref PrivateSubnetIds}
@@ -189,6 +271,33 @@ Resources:
       AtRestEncryptionEnabled: true
       TransitEncryptionEnabled: true
       SnapshotRetentionLimit: 7
+
+  RedisCpuAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Redis CPU utilization is above 75 percent
+      Namespace: AWS/ElastiCache
+      MetricName: CPUUtilization
+      Dimensions: [{Name: ReplicationGroupId, Value: !Ref RedisReplicationGroup}]
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 3
+      Threshold: 75
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: missing
+  RedisFreeableMemoryAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Redis freeable memory is below 50 MiB
+      Namespace: AWS/ElastiCache
+      MetricName: FreeableMemory
+      Dimensions: [{Name: ReplicationGroupId, Value: !Ref RedisReplicationGroup}]
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 3
+      Threshold: 52428800
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: missing
 
   ApplicationCommonSecret:
     Type: AWS::SecretsManager::Secret
