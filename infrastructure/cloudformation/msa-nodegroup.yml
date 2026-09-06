@@ -5,6 +5,10 @@ Parameters:
   ClusterName:
     Type: String
     Default: signaltrade-staging
+  Environment:
+    Type: String
+    Default: staging
+    AllowedValues: [staging, production]
   NodeRoleArn:
     Type: String
   PrivateSubnetIds:
@@ -53,7 +57,7 @@ Resources:
         workload: msa
       Tags:
         Project: SignalTrade
-        Environment: staging
+        Environment: !Ref Environment
         Workload: msa
 
 Outputs:

@@ -230,7 +230,7 @@ Resources:
         - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
       Tags:
         - {Key: Project, Value: SignalTrade}
-        - {Key: Environment, Value: staging}
+        - {Key: Environment, Value: !Ref Environment}
 
   EksNodeRole:
     Type: AWS::IAM::Role
@@ -248,7 +248,7 @@ Resources:
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
       Tags:
         - {Key: Project, Value: SignalTrade}
-        - {Key: Environment, Value: staging}
+        - {Key: Environment, Value: !Ref Environment}
 
   PodIdentityRole:
     Type: AWS::IAM::Role
@@ -470,7 +470,7 @@ Resources:
       ManagedPolicyArns: [!Ref AwsLoadBalancerControllerPolicy]
       Tags:
         - {Key: Project, Value: SignalTrade}
-        - {Key: Environment, Value: staging}
+        - {Key: Environment, Value: !Ref Environment}
 
   ExternalSecretsRole:
     Type: AWS::IAM::Role
@@ -500,7 +500,7 @@ Resources:
                 Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/signaltrade/${Environment}/monitoring/*"
       Tags:
         - {Key: Project, Value: SignalTrade}
-        - {Key: Environment, Value: staging}
+        - {Key: Environment, Value: !Ref Environment}
 
   EksCluster:
     Type: AWS::EKS::Cluster
@@ -530,7 +530,7 @@ Resources:
         SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
       Tags:
         - {Key: Project, Value: SignalTrade}
-        - {Key: Environment, Value: staging}
+        - {Key: Environment, Value: !Ref Environment}
 
   PodIdentityAgentAddon:
     Type: AWS::EKS::Addon
