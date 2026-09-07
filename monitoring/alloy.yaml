@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alloy
+  labels: {app.kubernetes.io/name: alloy, app.kubernetes.io/part-of: signaltrade}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app.kubernetes.io/name: alloy}}
+  template:
+    metadata: {labels: {app.kubernetes.io/name: alloy, app.kubernetes.io/part-of: signaltrade}}
+    spec:
+      serviceAccountName: alloy
+      containers:
+        - name: alloy
+          image: grafana/alloy:v1.11.3
+          args: [run, "--server.http.listen-addr=0.0.0.0:12345", /etc/alloy/config.alloy]
+          ports: [{name: http, containerPort: 12345}]
+          readinessProbe: {httpGet: {path: /-/ready, port: http}}
+          livenessProbe: {httpGet: {path: /-/ready, port: http}}
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {cpu: 500m, memory: 512Mi}
+          volumeMounts: [{name: config, mountPath: /etc/alloy, readOnly: true}]
+      volumes:
+        - name: config
+          configMap: {name: alloy-config}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: alloy}
+spec:
+  selector: {app.kubernetes.io/name: alloy}
+  ports: [{name: http, port: 12345, targetPort: http}]

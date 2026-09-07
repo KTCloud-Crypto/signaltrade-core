@@ -1,0 +1,26 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: signaltrade
+resources: [rbac.yaml, prometheus.yaml, loki.yaml, alloy.yaml, grafana.yaml, exporters.yaml]
+configMapGenerator:
+  - name: prometheus-config
+    files: [prometheus.yml=prometheus/prometheus.yml]
+  - name: loki-config
+    files: [loki.yml=loki/loki.yml]
+  - name: alloy-config
+    files: [config.alloy=alloy/config.alloy]
+  - name: grafana-provisioning
+    files:
+      - datasources.yml=grafana/provisioning/datasources/datasources.yml
+      - dashboards.yml=grafana/provisioning/dashboards/dashboards.yml
+  - name: grafana-dashboards
+    files:
+      - grafana/dashboards/api-traffic.json
+      - grafana/dashboards/database.json
+      - grafana/dashboards/load-test.json
+      - grafana/dashboards/main-summary.json
+      - grafana/dashboards/operations.json
+      - grafana/dashboards/security-operations.json
+      - grafana/dashboards/service-overview.json
+generatorOptions:
+  disableNameSuffixHash: true

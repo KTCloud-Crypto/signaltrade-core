@@ -30,6 +30,18 @@ kubectl --context "$CONTEXT" rollout status \
   deployment/redis --namespace signaltrade --timeout=180s
 kubectl --context "$CONTEXT" rollout status \
   deployment/localstack --namespace signaltrade --timeout=180s
+kubectl --context "$CONTEXT" rollout status \
+  deployment/prometheus --namespace signaltrade --timeout=180s
+kubectl --context "$CONTEXT" rollout status \
+  deployment/loki --namespace signaltrade --timeout=180s
+kubectl --context "$CONTEXT" rollout status \
+  deployment/alloy --namespace signaltrade --timeout=180s
+kubectl --context "$CONTEXT" rollout status \
+  deployment/grafana --namespace signaltrade --timeout=180s
+kubectl --context "$CONTEXT" rollout status \
+  deployment/postgres-exporter --namespace signaltrade --timeout=180s
+kubectl --context "$CONTEXT" rollout status \
+  daemonset/node-exporter --namespace signaltrade --timeout=180s
 
 if kubectl --context "$CONTEXT" get job database-migration \
   --namespace signaltrade >/dev/null 2>&1; then
@@ -37,4 +49,4 @@ if kubectl --context "$CONTEXT" get job database-migration \
     job/database-migration --namespace signaltrade --timeout=30s
 fi
 
-echo "local platform is ready: $CONTEXT / signaltrade"
+echo "local platform and monitoring are ready: $CONTEXT / signaltrade"

@@ -15,6 +15,7 @@ create-cluster:
 
 apply:
 	kubectl --context $(KUBE_CONTEXT) apply -k $(KUSTOMIZE_DIR)
+	kubectl --context $(KUBE_CONTEXT) apply -k monitoring
 
 build-migrations:
 	docker build -t $(MIGRATION_IMAGE) database
