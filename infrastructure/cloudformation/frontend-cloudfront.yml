@@ -19,6 +19,14 @@ Parameters:
     Type: String
     Default: ""
     Description: 선택 항목입니다. Route 53 Public Hosted Zone ID를 입력하면 Alias 레코드를 생성합니다.
+  GitHubOidcProviderArn:
+    Type: String
+    Default: arn:aws:iam::832496385575:oidc-provider/token.actions.githubusercontent.com
+    Description: GitHub Actions가 AWS 역할을 맡을 때 사용하는 기존 IAM OIDC Provider ARN입니다.
+  Environment:
+    Type: String
+    Default: staging
+    AllowedValues: [staging, production]
 
 Conditions:
   HasBucketName: !Not [!Equals [!Ref FrontendBucketName, ""]]
@@ -246,6 +254,36 @@ Resources:
               StringEquals:
                 AWS:SourceArn: !Sub arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}
 
+  FrontendCiRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub signaltrade-${Environment}-github-frontend-deploy
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Ref GitHubOidcProviderArn
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: !Sub repo:KTCloud-Crypto@304250132/signaltrade-frontend@1355453541:environment:${Environment}
+      Policies:
+        - PolicyName: frontend-static-deploy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !GetAtt FrontendBucket.Arn
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
+                Resource: !Sub ${FrontendBucket.Arn}/*
+              - Effect: Allow
+                Action: cloudfront:CreateInvalidation
+                Resource: !Sub arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}
+
   DomainAlias:
     Type: AWS::Route53::RecordSet
     Condition: CreateDnsRecord
@@ -277,3 +315,5 @@ Outputs:
     Value: !Ref Distribution
   DistributionDomainName:
     Value: !GetAtt Distribution.DomainName
+  FrontendCiRoleArn:
+    Value: !GetAtt FrontendCiRole.Arn

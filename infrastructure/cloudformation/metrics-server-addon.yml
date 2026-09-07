@@ -1,0 +1,24 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: SignalTrade EKS Metrics Server managed add-on for HPA
+
+Parameters:
+  ClusterName:
+    Type: String
+    Default: signaltrade-staging
+
+Resources:
+  MetricsServerAddon:
+    Type: AWS::EKS::Addon
+    Properties:
+      AddonName: metrics-server
+      ClusterName: !Ref ClusterName
+      ResolveConflicts: OVERWRITE
+      Tags:
+        - {Key: Project, Value: SignalTrade}
+        - {Key: Environment, Value: staging}
+
+Outputs:
+  AddonArn:
+    Value: !GetAtt MetricsServerAddon.Arn
+  AddonName:
+    Value: metrics-server
