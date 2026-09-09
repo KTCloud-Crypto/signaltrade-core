@@ -1,0 +1,53 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: SignalTrade security access log collector Pod Identity permissions
+
+Parameters:
+  ClusterName:
+    Type: String
+    Default: signaltrade-staging
+  Environment:
+    Type: String
+    Default: staging
+    AllowedValues: [staging, production]
+  SecurityLogBucketName:
+    Type: String
+    Default: signaltrade-security-access-logs-832496385575
+  SecurityLogQueueArn:
+    Type: String
+    Default: arn:aws:sqs:us-east-1:832496385575:signaltrade-security-log-ingestion-staging
+
+Resources:
+  SecurityLogCollectorRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "signaltrade-${Environment}-security-log-collector"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {Service: pods.eks.amazonaws.com}
+            Action: [sts:AssumeRole, sts:TagSession]
+      Policies:
+        - PolicyName: ConsumeSecurityAccessLogs
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [sqs:GetQueueAttributes, sqs:GetQueueUrl, sqs:ReceiveMessage, sqs:DeleteMessage, sqs:ChangeMessageVisibility]
+                Resource: !Ref SecurityLogQueueArn
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:s3:::${SecurityLogBucketName}/alb/*"
+                  - !Sub "arn:${AWS::Partition}:s3:::${SecurityLogBucketName}/cloudfront/*"
+  SecurityLogCollectorAssociation:
+    Type: AWS::EKS::PodIdentityAssociation
+    Properties:
+      ClusterName: !Ref ClusterName
+      Namespace: !Sub "signaltrade-${Environment}"
+      ServiceAccount: security-log-collector
+      RoleArn: !GetAtt SecurityLogCollectorRole.Arn
+
+Outputs:
+  SecurityLogCollectorRoleArn:
+    Value: !GetAtt SecurityLogCollectorRole.Arn

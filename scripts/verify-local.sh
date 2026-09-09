@@ -41,6 +41,8 @@ kubectl --context "$CONTEXT" rollout status \
 kubectl --context "$CONTEXT" rollout status \
   deployment/postgres-exporter --namespace signaltrade --timeout=180s
 kubectl --context "$CONTEXT" rollout status \
+  deployment/kube-state-metrics --namespace signaltrade --timeout=180s
+kubectl --context "$CONTEXT" rollout status \
   daemonset/node-exporter --namespace signaltrade --timeout=180s
 
 if kubectl --context "$CONTEXT" get job database-migration \

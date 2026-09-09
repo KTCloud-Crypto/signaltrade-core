@@ -1,3 +1,4 @@
+# Kubernetes resources for the Prometheus metrics collector.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata: {name: prometheus-data}
