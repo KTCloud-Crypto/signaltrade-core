@@ -15,7 +15,7 @@ kubectl --context kind-signaltrade-local -n signaltrade port-forward svc/grafana
 
 ## 구성
 
-- `prometheus/`: Pod 자동 발견, worker/API, PostgreSQL, node, cAdvisor 수집
+- `prometheus/`: Pod 자동 발견, worker/API, PostgreSQL, kube-state-metrics, node-exporter, cAdvisor 수집
 - `alloy/`: Kubernetes Pod 로그 발견과 Loki 전달
 - `loki/`: 14일 로그 보존 설정
 - `grafana/`: datasource provisioning과 기존 운영 대시보드

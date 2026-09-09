@@ -1,7 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: signaltrade
-resources: [rbac.yaml, prometheus.yaml, loki.yaml, alloy.yaml, grafana.yaml, exporters.yaml]
+resources: [rbac.yaml, metrics-collector.yaml, loki.yaml, alloy.yaml, grafana.yaml, exporters.yaml]
 configMapGenerator:
   - name: prometheus-config
     files: [prometheus.yml=prometheus/prometheus.yml]
@@ -18,6 +18,7 @@ configMapGenerator:
       - grafana/dashboards/api-traffic.json
       - grafana/dashboards/database.json
       - grafana/dashboards/load-test.json
+      - grafana/dashboards/kubernetes-cluster.json
       - grafana/dashboards/main-summary.json
       - grafana/dashboards/operations.json
       - grafana/dashboards/security-operations.json

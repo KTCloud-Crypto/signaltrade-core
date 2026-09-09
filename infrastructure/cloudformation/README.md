@@ -9,6 +9,7 @@
 - `staging-business-hours.yml`: 평일 KST 기준 RDS와 EKS 노드그룹 자동 시작·중지
 - `frontend-cloudfront.yml`: 프론트엔드 S3, CloudFront, API/모니터링 ALB origin, Route 53
 - `security-baseline.yml`: CloudTrail과 감사 로그 버킷
+- `security-log-collector-access.yml`: ALB·CloudFront 접근 로그를 읽는 Vector Pod Identity 권한
 
 `eks-foundation`은 현재 운영 중인 기반을 이어서 관리하고, MSA 의존 자원은 별도
 `application-foundation` 스택으로 배포합니다. 실제 변경 전에는 반드시 CloudFormation Change Set으로
@@ -30,3 +31,9 @@ Runtime Secret은 환경별로 다음 경로를 사용합니다. CloudFormation�
 - `signaltrade/<environment>/notification`: 알림 채널 자격 증명
 - `signaltrade/<environment>/database`: RDS 접속 정보
 - `/signaltrade/<environment>/monitoring/*`: SSM Parameter Store의 모니터링 자격 증명
+
+보안 접근 로그 수집기를 배포하기 전에 `security-log-collector-access.yml`을 적용합니다.
+staging 기본값은 `signaltrade-security-access-logs-832496385575` 버킷과
+`signaltrade-security-log-ingestion-staging` SQS를 참조합니다. 이 스택은 기존 버킷이나
+SQS를 생성·수정하지 않고 `security-log-collector` ServiceAccount에 최소 읽기/소비 권한만
+Pod Identity로 연결합니다.
